@@ -6,8 +6,8 @@ const swaggerDocument = {
   openapi: '3.0.0',
   info: {
     title: 'Integral Services API',
-    version: '1.0.0',
-    description: 'API para Integral Services',
+    version: env.SWAGGER_PATH,
+    description: 'API para Integral Services'
   },
   servers: [
     { url: `http://localhost:${env.PORT}`, description: 'Development' },
@@ -24,5 +24,5 @@ const swaggerDocument = {
 
 export function setupSwagger(app: Express): void {
   if (!env.SWAGGER_ENABLED) return;
-  app.use(env.SWAGGER_PATH, swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+  app.use(env.SWAGGER_PATH as string, swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 }

@@ -36,8 +36,8 @@ function parseHolidaysToDateStrings(data: unknown): string[] {
   if (!Array.isArray(data)) return [];
   return data
     .map((item: HolidayItem) => item?.date ?? (item as { fecha?: string })?.fecha)
-    .filter(Boolean)
-    .map((d: string) => (d.includes('T') ? d.slice(0, 10) : d));
+    .filter((d): d is string => typeof d === 'string' && d.length > 0)
+    .map((d) => (d.includes('T') ? d.slice(0, 10) : d));
 }
 
 /**
@@ -116,5 +116,5 @@ export async function getMyIp(): Promise<{ ip?: string; [key: string]: unknown }
   const sdk = getSdk();
   if (!sdk?.showMyIp) throw new Error('SDK apis-chile no disponible');
   const { data } = await sdk.showMyIp();
-  return (data as object) ?? {};
+  return (data as Record<string, unknown>) ?? {};
 }

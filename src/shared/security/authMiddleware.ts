@@ -3,6 +3,13 @@ import jwt from 'jsonwebtoken';
 import { env } from '../../config/env';
 import { HttpError } from '../errors/httpError';
 
+const CTX_ROLES = ['ADMIN', 'TECH', 'CLIENT'] as const;
+type CtxRole = (typeof CTX_ROLES)[number];
+
+function toCtxRole(role?: string): CtxRole | undefined {
+  return role && CTX_ROLES.includes(role as CtxRole) ? (role as CtxRole) : undefined;
+}
+
 export interface JwtPayload {
   sub: string;
   email?: string;
@@ -30,6 +37,12 @@ export function authMiddleware(
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
     req.user = decoded;
+    if (req.ctx) {
+      req.ctx.userId = decoded.sub;
+      req.ctx.tenantId = decoded.tenantId;
+      req.ctx.companyId = decoded.tenantId;
+      req.ctx.role = toCtxRole(decoded.roles?.[0]);
+    }
     next();
   } catch {
     throw HttpError.unauthorized('Invalid or expired token');

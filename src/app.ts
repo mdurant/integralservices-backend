@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import { env } from './config/env';
 import { errorMiddleware } from './shared/errors/errorMiddleware';
+import { requestContextMiddleware } from './shared/observability/requestContext';
 import { httpLogger } from './shared/observability/httpLogger';
 import { rateLimit } from './shared/security/rateLimit';
 import { setupSwagger } from './config/swagger';
@@ -20,6 +21,7 @@ app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use(requestContextMiddleware);
 app.use(httpLogger);
 
 if (env.RATE_LIMIT_ENABLED) {

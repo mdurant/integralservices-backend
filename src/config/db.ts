@@ -2,19 +2,12 @@ import { Sequelize } from 'sequelize';
 import { env } from './env';
 import { logger } from './logger';
 
-export const sequelize = new Sequelize(env.DATABASE_URL, {
+export const sequelize = new Sequelize(env.DB_NAME ?? 'integralservices', env.DB_USER ?? 'root', env.DB_PASS ?? 'root', {
+  host: env.DB_HOST,
+  port: env.DB_PORT,
   dialect: 'mysql',
-  logging: env.NODE_ENV === 'development' ? (msg) => logger.debug(msg) : false,
-  pool: {
-    max: 10,
-    min: 0,
-    acquire: 30000,
-    idle: 10000,
-  },
-  define: {
-    timestamps: true,
-    underscored: true,
-  },
+  logging: false,
+  dialectOptions: { dateStrings: true },
 });
 
 export async function connectDb(): Promise<void> {
