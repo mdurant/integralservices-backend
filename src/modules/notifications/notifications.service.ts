@@ -1,7 +1,9 @@
 /**
- * Servicio de notificaciones (email, push, etc.).
- * Usado por otros módulos (ej. quotes, identity) para enviar mensajes.
+ * Servicio de notificaciones (email vía SMTP/Mailtrap en dev, push, etc.).
  */
+
+import { sendMail } from '../../config/mail';
+import { logger } from '../../config/logger';
 
 export interface SendNotificationDto {
   to: string | string[];
@@ -13,17 +15,33 @@ export interface SendNotificationDto {
 }
 
 export class NotificationsService {
-  async send(_payload: SendNotificationDto): Promise<{ id: string; sentAt: string }> {
-    // TODO: integrar con proveedor (SendGrid, SES, etc.)
+  async send(payload: SendNotificationDto): Promise<{ id: string; sentAt: string }> {
+    if (payload.channel === 'email' || !payload.channel) {
+      return sendMail({
+        to: payload.to,
+        subject: payload.subject ?? 'Notificación',
+        text: payload.body,
+      });
+    }
+    logger.warn('Channel not implemented', { channel: payload.channel });
     return {
       id: `notif-${Date.now()}`,
       sentAt: new Date().toISOString(),
     };
   }
 
-  async sendBulk(_payloads: SendNotificationDto[]): Promise<{ sent: number; failed: number }> {
-    // TODO: envío masivo
-    return { sent: 0, failed: 0 };
+  async sendBulk(payloads: SendNotificationDto[]): Promise<{ sent: number; failed: number }> {
+    let sent = 0;
+    let failed = 0;
+    for (const p of payloads) {
+      try {
+        await this.send(p);
+        sent++;
+      } catch {
+        failed++;
+      }
+    }
+    return { sent, failed };
   }
 }
 

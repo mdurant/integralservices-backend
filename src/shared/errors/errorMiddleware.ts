@@ -3,7 +3,7 @@ import { HttpError } from './httpError';
 import { logger } from '../../config/logger';
 
 export function errorMiddleware(
-  err: Error,
+  err: Error & { statusCode?: number; type?: string },
   _req: Request,
   res: Response,
   _next: NextFunction
@@ -13,6 +13,18 @@ export function errorMiddleware(
       error: {
         message: err.message,
         code: err.code,
+      },
+    });
+    return;
+  }
+
+  // JSON inválido en el body (p. ej. "email": test@example.com sin comillas)
+  const isJsonParseError = err.type === 'entity.parse.failed' || (err.message && err.message.includes('is not valid JSON'));
+  if (err.statusCode === 400 && isJsonParseError) {
+    res.status(400).json({
+      error: {
+        message: 'Body inválido. Debe ser JSON válido (los textos, como email, entre comillas dobles). Ej: "email": "test@example.com"',
+        code: 'INVALID_JSON',
       },
     });
     return;
