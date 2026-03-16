@@ -1,32 +1,28 @@
 # Flujo de autenticación (Feature/authentication)
 
+**Documentación completa (input/output por endpoint y uso en Postman):** **[docs/CICLO_VIDA_AUTH.md](./CICLO_VIDA_AUTH.md)**.
+
 **Puertos:** Backend `http://localhost:3000`, Frontend `http://localhost:4200`.  
-Los enlaces de activación y recuperación de contraseña apuntan al frontend (`FRONTEND_URL`), por ejemplo:  
-`http://localhost:4200/auth/activate?token=...` y `http://localhost:4200/auth/reset-password?token=...`.
+Enlaces de correo: `http://localhost:4200/auth/activate?token=...` y `http://localhost:4200/auth/reset-password?token=...`.
+
+**Postman:** Importar `docs/IntegralServices-Auth.postman_collection.json`. Variables y ejemplos de body en `CICLO_VIDA_AUTH.md`.
 
 ---
 
-## Postman
+## Resumen rápido
 
-En **`docs/IntegralServices-Auth.postman_collection.json`** está la colección para probar todos los endpoints.
+| Paso | Endpoint | Notas |
+|------|----------|--------|
+| 1 | POST `/identity/register` | Body: nombres, apellidos, email, password, rePassword, acceptTerms |
+| 2 | POST `/identity/activate` | Body: token (del enlace del correo) |
+| 3 | POST `/identity/send-otp` | Body: email |
+| 4 | POST `/identity/verify-otp` | Body: email, code → devuelve accessToken, refreshToken |
+| 5 | POST `/identity/login` | Body: email, password, rememberMe? |
+| 6 | GET `/identity/dashboard` | Header: Authorization Bearer {{accessToken}} |
+| 7 | GET/PATCH `/identity/profile` | Actualizar perfil (nacionalidad, phone, sexo, región, comuna, actividad) |
+| 8 | POST `/identity/profile/image` | form-data campo `image` |
 
-**Importar en Postman:** File → Import → seleccionar el archivo `IntegralServices-Auth.postman_collection.json`.
-
-**Variables de la colección** (editar en Collection → Variables):
-
-| Variable          | Valor por defecto           | Uso |
-|-------------------|-----------------------------|-----|
-| `baseUrl`         | `http://localhost:3000/api/v1` | Base de la API (backend en puerto 3000) |
-| `accessToken`     | (vacío)                     | Se rellena automáticamente tras Login o Verify OTP |
-| `refreshToken`    | (vacío)                     | Se rellena automáticamente tras Login o Verify OTP |
-| `email`           | `test@example.com`          | Email para register/login/OTP |
-| `activationToken`| (vacío)                     | Pegar el token del enlace del correo de activación |
-| `otpCode`         | `123456`                    | Código OTP recibido por correo (cambiar en cada prueba) |
-
-**Orden sugerido para probar el flujo completo:**  
-Register → (revisar correo y copiar token) → Activate → Send OTP → (revisar correo y copiar código) → Verify OTP → Dashboard → Get Profile → Update Profile → (opcional) Upload Profile Image.  
-Para login directo (usuario ya activo): Login → Dashboard / Get Profile.  
-Para recuperación: Forgot Password → (revisar correo, copiar token) → Reset Password.
+Recuperación: POST `/identity/forgot-password` → correo con enlace → POST `/identity/reset-password` (token, newPassword, rePassword).
 
 ---
 

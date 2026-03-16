@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "IntegralServices - Auth & Identity",
-    "description": "Colección para probar todos los endpoints de autenticación y perfil.",
+    "description": "Colección para probar todos los endpoints de autenticación y perfil. Input/Output detallados: ver docs/CICLO_VIDA_AUTH.md. Backend: http://localhost:3000.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -10,7 +10,8 @@
     { "key": "refreshToken", "value": "" },
     { "key": "email", "value": "test@example.com" },
     { "key": "activationToken", "value": "" },
-    { "key": "otpCode", "value": "123456" }
+    { "key": "otpCode", "value": "123456" },
+    { "key": "resetPasswordToken", "value": "" }
   ],
   "item": [
     {
@@ -162,10 +163,10 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"token\": \"TOKEN_DEL_CORREO\",\n  \"newPassword\": \"NewPassword123!\",\n  \"rePassword\": \"NewPassword123!\"\n}"
+              "raw": "{\n  \"token\": \"{{resetPasswordToken}}\",\n  \"newPassword\": \"NewPassword123!\",\n  \"rePassword\": \"NewPassword123!\"\n}"
             },
             "url": "{{baseUrl}}/identity/reset-password",
-            "description": "Restablecer contraseña con el token del enlace recibido por correo."
+            "description": "Restablecer contraseña con el token del enlace recibido por correo. Pegar el token en la variable de colección resetPasswordToken (o reemplazar {{resetPasswordToken}} en el body)."
           }
         }
       ]
