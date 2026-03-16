@@ -227,6 +227,14 @@ export class IdentityService {
     user.password_hash = await hashPassword(data.newPassword);
     await user.save();
     await row.update({ used_at: new Date() });
+
+    // Seguridad: invalidar todas las sesiones de refresco para que el restablecimiento
+    // cierre cualquier sesión potencialmente comprometida
+    await UserSession.update(
+      { revoked_at: new Date() },
+      { where: { user_id: user.id } }
+    );
+
     return { message: 'Contraseña actualizada. Inicia sesión.' };
   }
 
