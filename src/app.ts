@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -16,7 +17,9 @@ import { geographyRoutes } from './modules/geography/geography.routes';
 const app = express();
 
 app.use(helmet());
-app.use(cors({ origin: env.CORS_ORIGIN ?? '*' }));
+// En desarrollo: permitir frontend (p. ej. Angular en :4200); CORS_ORIGIN o FRONTEND_URL
+const corsOrigin = env.CORS_ORIGIN ?? env.FRONTEND_URL ?? '*';
+app.use(cors({ origin: corsOrigin }));
 app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -39,6 +42,9 @@ app.use(`${apiPrefix}/geography`, geographyRoutes);
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+const uploadDir = env.UPLOAD_DIR ?? 'uploads';
+app.use('/uploads', express.static(path.join(process.cwd(), uploadDir)));
 
 app.use(errorMiddleware);
 

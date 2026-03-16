@@ -1,0 +1,284 @@
+{
+  "info": {
+    "name": "IntegralServices - Auth & Identity",
+    "description": "Colección para probar todos los endpoints de autenticación y perfil.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "email", "value": "test@example.com" },
+    { "key": "activationToken", "value": "" },
+    { "key": "otpCode", "value": "123456" }
+  ],
+  "item": [
+    {
+      "name": "1. Registro y activación",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Juan\",\n  \"apellidos\": \"Pérez\",\n  \"email\": \"{{email}}\",\n  \"password\": \"Password123!\",\n  \"rePassword\": \"Password123!\",\n  \"acceptTerms\": true\n}"
+            },
+            "url": "{{baseUrl}}/identity/register",
+            "description": "Registro con nombres, apellidos, email, password, rePassword y aceptación de términos. Tras el registro se envía correo de activación. IMPORTANTE: El body debe ser JSON válido; el email y todos los textos van entre comillas dobles (ej: \"email\": \"test@example.com\"). No editar el body quitando las comillas alrededor de {{email}}."
+          }
+        },
+        {
+          "name": "Activate (email)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{activationToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/identity/activate",
+            "description": "Activar cuenta con el token del enlace del correo. Tras activar se envía OTP al correo."
+          }
+        },
+        {
+          "name": "Send OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}"
+            },
+            "url": "{{baseUrl}}/identity/send-otp",
+            "description": "Reenvía el código OTP al correo del usuario."
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.accessToken) pm.collectionVariables.set('accessToken', res.accessToken);",
+                  "if (res.refreshToken) pm.collectionVariables.set('refreshToken', res.refreshToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"code\": \"{{otpCode}}\"\n}"
+            },
+            "url": "{{baseUrl}}/identity/verify-otp",
+            "description": "Verificar código OTP. Devuelve accessToken y refreshToken. Activa 2FA y crea log de registro."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Login y tokens",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.accessToken) pm.collectionVariables.set('accessToken', res.accessToken);",
+                  "if (res.refreshToken) pm.collectionVariables.set('refreshToken', res.refreshToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"Password123!\",\n  \"rememberMe\": true\n}"
+            },
+            "url": "{{baseUrl}}/identity/login",
+            "description": "Login con email y password. Opcional: rememberMe para refresh token de mayor duración."
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.accessToken) pm.collectionVariables.set('accessToken', res.accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/identity/refresh",
+            "description": "Obtener nuevo accessToken usando el refreshToken."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Recuperación de contraseña",
+      "item": [
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}"
+            },
+            "url": "{{baseUrl}}/identity/forgot-password",
+            "description": "Solicitar enlace para restablecer contraseña. Se envía por correo."
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"TOKEN_DEL_CORREO\",\n  \"newPassword\": \"NewPassword123!\",\n  \"rePassword\": \"NewPassword123!\"\n}"
+            },
+            "url": "{{baseUrl}}/identity/reset-password",
+            "description": "Restablecer contraseña con el token del enlace recibido por correo."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Perfil y dashboard (requieren Bearer)",
+      "item": [
+        {
+          "name": "Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/identity/dashboard",
+            "description": "Bienvenida, datos del usuario y log de registro (evento dashboard_first_access)."
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": "{{baseUrl}}/identity/profile",
+            "description": "Obtener perfil del usuario autenticado."
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Juan\",\n  \"apellidos\": \"Pérez\",\n  \"nacionalidad\": \"CL\",\n  \"phone\": \"91234567\",\n  \"sexo\": \"M\",\n  \"regionCode\": \"13\",\n  \"comunaCode\": \"13101\",\n  \"actividadOfertadaId\": \"plomeria\"\n}"
+            },
+            "url": "{{baseUrl}}/identity/profile",
+            "description": "Actualizar perfil. phone: 8 dígitos. actividadOfertadaId: id del listado actividades-ofertadas."
+          }
+        },
+        {
+          "name": "Upload Profile Image",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": [],
+                  "description": "Seleccionar archivo de imagen (campo debe llamarse 'image')"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/identity/profile/image",
+            "description": "Subir imagen de perfil. Body: form-data con campo 'image'. Límite 5MB."
+          }
+        },
+        {
+          "name": "Deactivate Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": "{{baseUrl}}/identity/deactivate",
+            "description": "Desactivar cuenta (bajar cuenta). Requiere contraseña."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Datos estáticos (públicos)",
+      "item": [
+        {
+          "name": "Nacionalidades",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/identity/nacionalidades",
+            "description": "Listado de nacionalidades para el select del perfil."
+          }
+        },
+        {
+          "name": "Actividades Ofertadas",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/identity/actividades-ofertadas",
+            "description": "Listado de ~50 actividades/servicios (Chile) para seleccionar una en el perfil."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:3000/health",
+        "description": "Health check del servidor."
+      }
+    }
+  ]
+}

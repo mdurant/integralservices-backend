@@ -6,6 +6,7 @@ dist/
 *.log
 .DS_Store
 coverage/
+uploads/
 .idea/
 .vscode/
 .cursor/

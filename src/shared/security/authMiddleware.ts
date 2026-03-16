@@ -35,7 +35,8 @@ export function authMiddleware(
 
   const token = authHeader.slice(7);
   try {
-    const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+    const secret = env.JWT_ACCESS_SECRET ?? env.JWT_SECRET;
+    const decoded = jwt.verify(token, secret!) as JwtPayload;
     req.user = decoded;
     if (req.ctx) {
       req.ctx.userId = decoded.sub;
