@@ -32,7 +32,7 @@ API REST en Node.js + TypeScript (Express, MySQL). Pensado para correr en local 
    npm run dev
    ```
    - Al arrancar se valida la conexión a la BD; si falla, el proceso termina.
-   - Servidor en **http://localhost:3000** con recarga automática (nodemon). Si el frontend corre en otro puerto (p. ej. Angular en **4200**), configura `FRONTEND_URL=http://localhost:4200` en `.env` para que los enlaces de activación y recuperación de contraseña apunten al frontend.
+   - Servidor en **http://localhost:3000** con recarga automática (nodemon). Los enlaces de activación y recuperación de contraseña apuntan por defecto a `http://localhost:3000/auth/activate` y `.../auth/reset-password` (configurable con `FRONTEND_URL` en `.env`).
 
 4. **Comprobar**
    - Health: [http://localhost:3000/health](http://localhost:3000/health)
@@ -95,7 +95,7 @@ docker compose up -d mysql
 | `DB_PORT` | `3307` con MySQL en Docker desde el host; `3306` si MySQL es local. |
 | `DB_NAME`, `DB_USER`, `DB_PASS` | Conexión MySQL (por defecto: `integralservices`, `app`, `app`). |
 | `PORT` | Puerto del servidor (por defecto `3000`). |
-| `FRONTEND_URL` | URL del frontend (p. ej. `http://localhost:4200`). Usado en enlaces de activación y reset. |
+| `FRONTEND_URL` | Base URL de los enlaces de correo (por defecto `http://localhost:3000`). Activación y reset en `/auth/activate` y `/auth/reset-password`. |
 | `TZ` | Zona horaria (por defecto `America/Santiago`). |
 | Resto | JWT, rate limit, Swagger, etc. Ver `.env.example`. |
 

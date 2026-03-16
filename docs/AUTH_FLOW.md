@@ -2,8 +2,8 @@
 
 **Documentación completa (input/output por endpoint y uso en Postman):** **[docs/CICLO_VIDA_AUTH.md](./CICLO_VIDA_AUTH.md)**.
 
-**Puertos:** Backend `http://localhost:3000`, Frontend `http://localhost:4200`.  
-Enlaces de correo: `http://localhost:4200/auth/activate?token=...` y `http://localhost:4200/auth/reset-password?token=...`.
+**Puertos:** Backend `http://localhost:3000`.  
+Enlaces de correo apuntan al backend: `http://localhost:3000/auth/activate?token=...` y `http://localhost:3000/auth/reset-password?token=...`.
 
 **Postman:** Importar `docs/IntegralServices-Auth.postman_collection.json`. Variables y ejemplos de body en `CICLO_VIDA_AUTH.md`.
 
@@ -130,7 +130,7 @@ Se marca al usuario como `deactivated` y se revocan las sesiones.
 
 - `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` — Firmas de tokens
 - `JWT_ACCESS_TTL_MIN`, `JWT_REFRESH_TTL_DAYS`
-- `FRONTEND_URL` — URL del frontend (p. ej. `http://localhost:4200`). Enlaces de activación y reset apuntan aquí.
+- `FRONTEND_URL` — Base URL de los enlaces de correo (por defecto `http://localhost:3000`). Activación y reset usan `/auth/activate` y `/auth/reset-password`.
 - `OTP_TTL_MIN` — Minutos de validez del OTP
 - `ACTIVATION_TOKEN_TTL_HOURS` — Validez del enlace de activación
 - `UPLOAD_DIR` — Carpeta de subida de imágenes (por defecto `uploads`)

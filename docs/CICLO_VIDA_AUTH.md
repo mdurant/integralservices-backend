@@ -2,8 +2,8 @@
 
 Documentación actualizada del flujo de autenticación tras el merge a `main`. Incluye **input** y **output** de cada endpoint para usar en **Postman**.
 
-**Entorno:** Backend `http://localhost:3000`, Frontend `http://localhost:4200`.  
-Enlaces de correo (activación, reset password) usan `FRONTEND_URL` → `http://localhost:4200/auth/activate?token=...` y `http://localhost:4200/auth/reset-password?token=...`.
+**Entorno:** Backend `http://localhost:3000`.  
+Enlaces de correo (activación, reset password) usan `FRONTEND_URL` → por defecto `http://localhost:3000/auth/activate?token=...` y `http://localhost:3000/auth/reset-password?token=...`.
 
 ---
 
@@ -77,7 +77,7 @@ Enlaces de correo (activación, reset password) usan `FRONTEND_URL` → `http://
 
 **POST** `{{baseUrl}}/identity/activate`
 
-Token obtenido del enlace del correo: `http://localhost:4200/auth/activate?token=XXXX`.
+Token obtenido del enlace del correo: `http://localhost:3000/auth/activate?token=XXXX`.
 
 **Input (body):**
 
@@ -265,7 +265,7 @@ Tras verificar, el usuario pasa a `active`, se activa 2FA y se crea el log `dash
 
 **POST** `{{baseUrl}}/identity/reset-password`
 
-Token del enlace del correo: `http://localhost:4200/auth/reset-password?token=XXXX`. En Postman usar variable `{{resetPasswordToken}}`.
+Token del enlace del correo: `http://localhost:3000/auth/reset-password?token=XXXX`. En Postman usar variable `{{resetPasswordToken}}`.
 
 **Input (body):**
 

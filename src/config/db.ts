@@ -11,11 +11,13 @@ export const sequelize = new Sequelize(env.DB_NAME ?? 'integralservices', env.DB
 });
 
 export async function connectDb(): Promise<void> {
+  const host = env.DB_HOST ?? 'localhost';
+  const port = env.DB_PORT ?? 3306;
   try {
     await sequelize.authenticate();
     logger.info('Database connection established.');
   } catch (err) {
-    logger.error('Unable to connect to the database:', err);
+    logger.error(`Unable to connect to the database at ${host}:${port}. ¿Está MySQL en marcha? (ej: docker compose up -d mysql). Revisa DB_HOST y DB_PORT en .env.`, err);
     throw err;
   }
 }

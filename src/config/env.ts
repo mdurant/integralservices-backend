@@ -32,7 +32,7 @@ export const env = {
   JWT_REFRESH_TTL_DAYS: parseInt(getEnvOptional('JWT_REFRESH_TTL_DAYS', '15') ?? '15', 10),
   JWT_EXPIRES_IN: getEnvOptional('JWT_EXPIRES_IN', '7d'),
   OTP_TTL_MIN: parseInt(getEnvOptional('OTP_TTL_MIN', '10') ?? '10', 10),
-  FRONTEND_URL: getEnvOptional('FRONTEND_URL', 'http://localhost:4200'),
+  FRONTEND_URL: getEnvOptional('FRONTEND_URL', 'http://localhost:3000'),
   UPLOAD_DIR: getEnvOptional('UPLOAD_DIR', 'uploads'),
   ACTIVATION_TOKEN_TTL_HOURS: parseInt(getEnvOptional('ACTIVATION_TOKEN_TTL_HOURS', '24') ?? '24', 10),
   TZ: getEnvOptional('TZ', 'America/Santiago'),

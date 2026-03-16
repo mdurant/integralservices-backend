@@ -2,7 +2,7 @@ import { env } from '../../config/env';
 import { notificationsService } from '../notifications/notifications.service';
 import { logger } from '../../config/logger';
 
-const FRONTEND_URL = env.FRONTEND_URL ?? 'http://localhost:4200';
+const FRONTEND_URL = env.FRONTEND_URL ?? 'http://localhost:3000';
 
 export async function sendActivationEmail(email: string, token: string): Promise<void> {
   const link = `${FRONTEND_URL}/auth/activate?token=${encodeURIComponent(token)}`;
