@@ -5,6 +5,7 @@ import fs from 'fs';
 import { identityController } from './identity.controller';
 import { authMiddleware } from '../../shared/security/authMiddleware';
 import { env } from '../../config/env';
+import { Nationality, Sex, Region, Commune } from '../../models';
 
 const router = Router();
 
@@ -31,11 +32,42 @@ router.post('/login', (req, res, next) => identityController.login(req, res).cat
 router.post('/refresh', (req, res, next) => identityController.refreshToken(req, res).catch(next));
 router.post('/forgot-password', (req, res, next) => identityController.forgotPassword(req, res).catch(next));
 router.post('/reset-password', (req, res, next) => identityController.resetPassword(req, res).catch(next));
+router.post('/verify-contact-change', (req, res, next) => identityController.verifyContactChange(req, res).catch(next));
 
-// Datos estáticos (públicos para el formulario de perfil)
-router.get('/nacionalidades', (_req, res) => {
-  const { NACIONALIDADES } = require('./data/nacionalidades');
-  res.json({ data: NACIONALIDADES });
+// Listados para perfil (desde BD: seeders de nationalities, sexes, regions, communes)
+router.get('/nacionalidades', async (_req, res, next) => {
+  try {
+    const list = await Nationality.findAll({ order: [['label', 'ASC']], attributes: ['code', 'label'] });
+    res.json({ data: list.map((r) => ({ value: r.code, label: r.label })) });
+  } catch (e) {
+    next(e);
+  }
+});
+router.get('/sexes', async (_req, res, next) => {
+  try {
+    const list = await Sex.findAll({ order: [['id', 'ASC']], attributes: ['code', 'label'] });
+    res.json({ data: list.map((r) => ({ value: r.code, label: r.label })) });
+  } catch (e) {
+    next(e);
+  }
+});
+router.get('/regions', async (_req, res, next) => {
+  try {
+    const list = await Region.findAll({ order: [['code', 'ASC']], attributes: ['code', 'name'] });
+    res.json({ data: list.map((r) => ({ code: r.code, name: r.name })) });
+  } catch (e) {
+    next(e);
+  }
+});
+router.get('/communes', async (req, res, next) => {
+  try {
+    const regionCode = req.query.regionCode as string | undefined;
+    const where = regionCode ? { region_code: regionCode } : {};
+    const list = await Commune.findAll({ where, order: [['name', 'ASC']], attributes: ['code', 'name', 'region_code'] });
+    res.json({ data: list.map((r) => ({ code: r.code, name: r.name, regionCode: r.region_code })) });
+  } catch (e) {
+    next(e);
+  }
 });
 router.get('/actividades-ofertadas', (_req, res) => {
   const data = require('./data/actividades-ofertadas.json');

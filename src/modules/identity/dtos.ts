@@ -70,12 +70,19 @@ export interface UserInfoDto {
 export interface UpdateProfileDto {
   nombres?: string;
   apellidos?: string;
+  email?: string;
   nacionalidad?: string;
   phone?: string;
   sexo?: 'M' | 'F' | 'X' | 'other';
   regionCode?: string;
   comunaCode?: string;
   actividadOfertadaId?: string;
+}
+
+export interface VerifyContactChangeDto {
+  kind: 'email' | 'phone';
+  newValue: string;
+  code: string;
 }
 
 export interface ProfileResponseDto extends UserInfoDto {

@@ -11,6 +11,7 @@ import {
   VerifyOtpDto,
   UpdateProfileDto,
   DeactivateAccountDto,
+  VerifyContactChangeDto,
 } from './dtos';
 
 export class IdentityController {
@@ -74,6 +75,12 @@ export class IdentityController {
     const userId = req.user!.sub;
     const data = req.body as UpdateProfileDto;
     const result = await identityService.updateProfile(userId, data);
+    res.json(result);
+  }
+
+  async verifyContactChange(req: Request, res: Response): Promise<void> {
+    const data = req.body as VerifyContactChangeDto;
+    const result = await identityService.verifyContactChange(data);
     res.json(result);
   }
 

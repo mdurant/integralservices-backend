@@ -5,7 +5,7 @@ import { Op } from 'sequelize';
 import { env } from '../../config/env';
 import { HttpError } from '../../shared/errors/httpError';
 import { logger } from '../../config/logger';
-import { User, OtpCode, UserSession, RegistrationLog, ActivationToken } from '../../models';
+import { User, OtpCode, UserSession, RegistrationLog, ActivationToken, PendingContactChange } from '../../models';
 import {
   RegisterDto,
   LoginDto,
@@ -19,8 +19,9 @@ import {
   UpdateProfileDto,
   DashboardResponseDto,
   DeactivateAccountDto,
+  VerifyContactChangeDto,
 } from './dtos';
-import { sendActivationEmail, sendOtpEmail, sendPasswordResetEmail } from './email.service';
+import { sendActivationEmail, sendOtpEmail, sendPasswordResetEmail, sendEmailChangeOtp, sendPhoneChangeOtp } from './email.service';
 
 const SALT_ROUNDS = 10;
 const OTP_LENGTH = 6;
@@ -238,28 +239,121 @@ export class IdentityService {
     return { message: 'Contraseña actualizada. Inicia sesión.' };
   }
 
-  async updateProfile(userId: string, data: UpdateProfileDto): Promise<UserInfoDto> {
+  async updateProfile(
+    userId: string,
+    data: UpdateProfileDto
+  ): Promise<UserInfoDto | { requiresVerification: true; channel: 'email' | 'phone'; channels?: ['email', 'phone']; message: string; logoutInSeconds: number }> {
     const user = await User.findByPk(userId);
     if (!user) throw HttpError.notFound('Usuario no encontrado');
     if (user.status === 'deactivated') throw HttpError.forbidden('Cuenta desactivada.');
 
+    const newEmail = data.email !== undefined ? data.email.trim().toLowerCase() : undefined;
+    let newPhone: string | undefined;
     if (data.phone !== undefined) {
       const digits = data.phone.replace(/\D/g, '');
       if (digits.length !== 8) throw HttpError.badRequest('El teléfono debe tener 8 dígitos');
-      data.phone = digits;
+      newPhone = digits;
     }
 
+    const emailChanged = newEmail !== undefined && newEmail !== (user.email ?? '').toLowerCase();
+    const phoneChanged = newPhone !== undefined && newPhone !== (user.phone ?? '');
+
+    if (emailChanged) {
+      const existing = await User.findOne({ where: { email: newEmail! } });
+      if (existing) throw HttpError.conflict('El correo ya está en uso');
+    }
+
+    // Revocar todas las sesiones si cambia email o teléfono (cerrar sesión en todos los dispositivos)
+    if (emailChanged || phoneChanged) {
+      await UserSession.update({ revoked_at: new Date() }, { where: { user_id: userId } });
+    }
+
+    const channels: ('email' | 'phone')[] = [];
+    const OTP_TTL_MS = (OTP_TTL_MIN ?? 10) * 60 * 1000;
+
+    if (emailChanged) {
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      const expires_at = new Date(Date.now() + OTP_TTL_MS);
+      await PendingContactChange.create({
+        user_id: userId,
+        kind: 'email',
+        new_value: newEmail!,
+        code,
+        expires_at,
+      });
+      await sendEmailChangeOtp(newEmail!, code);
+      channels.push('email');
+    }
+
+    if (phoneChanged) {
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      const expires_at = new Date(Date.now() + OTP_TTL_MS);
+      await PendingContactChange.create({
+        user_id: userId,
+        kind: 'phone',
+        new_value: newPhone!,
+        code,
+        expires_at,
+      });
+      await sendPhoneChangeOtp(user.email, code);
+      channels.push('phone');
+    }
+
+    // Actualizar solo campos que no requieren verificación
     await user.update({
       first_name: data.nombres ?? user.first_name,
       last_name: data.apellidos ?? user.last_name,
       nationality: data.nacionalidad ?? user.nationality,
-      phone: data.phone ?? user.phone,
+      ...(emailChanged ? {} : { email: newEmail ?? user.email }),
+      ...(phoneChanged ? {} : { phone: newPhone ?? user.phone }),
       sex: data.sexo ?? user.sex,
       region_code: data.regionCode ?? user.region_code,
       comuna_code: data.comunaCode ?? user.comuna_code,
       actividad_ofertada_id: data.actividadOfertadaId ?? user.actividad_ofertada_id,
     });
+
+    if (channels.length > 0) {
+      return {
+        requiresVerification: true,
+        ...(channels.length === 1 ? { channel: channels[0] } : { channel: channels[0], channels }),
+        message:
+          channels.length === 2
+            ? 'Se han enviado códigos a tu nuevo correo y a tu correo actual para el teléfono. Verifica ambos e inicia sesión de nuevo.'
+            : channels[0] === 'email'
+              ? 'Se ha enviado un código a tu nuevo correo. Verifícalo e inicia sesión de nuevo.'
+              : 'Se ha enviado un código a tu correo para confirmar el nuevo teléfono. Verifícalo e inicia sesión de nuevo.',
+        logoutInSeconds: 5,
+      };
+    }
+
     return toUserInfo(user);
+  }
+
+  async verifyContactChange(data: VerifyContactChangeDto): Promise<{ message: string }> {
+    const pending = await PendingContactChange.findOne({
+      where: {
+        kind: data.kind,
+        new_value: data.kind === 'phone' ? data.newValue.replace(/\D/g, '') : data.newValue.trim().toLowerCase(),
+        code: data.code,
+        used_at: null,
+        expires_at: { [Op.gt]: new Date() },
+      },
+    });
+    if (!pending) throw HttpError.badRequest('Código inválido o expirado');
+
+    const user = await User.findByPk(pending.user_id);
+    if (!user) throw HttpError.notFound('Usuario no encontrado');
+
+    if (data.kind === 'email') {
+      const existing = await User.findOne({ where: { email: pending.new_value } });
+      if (existing && existing.id !== user.id) throw HttpError.conflict('El correo ya está en uso');
+      await user.update({ email: pending.new_value, email_verified_at: new Date() });
+    } else {
+      await user.update({ phone: pending.new_value });
+    }
+
+    await pending.update({ used_at: new Date() });
+    return { message: 'Dato actualizado correctamente. Inicia sesión con tus nuevas credenciales.' };
   }
 
   async deactivateAccount(userId: string, data: DeactivateAccountDto): Promise<{ message: string }> {

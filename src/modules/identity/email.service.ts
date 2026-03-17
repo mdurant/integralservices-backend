@@ -53,3 +53,37 @@ export async function sendPasswordResetEmail(email: string, token: string): Prom
     throw err;
   }
 }
+
+/** OTP para cambio de email: se envía al NUEVO correo. */
+export async function sendEmailChangeOtp(newEmail: string, code: string): Promise<void> {
+  const body = `Tu código para confirmar el nuevo correo es: ${code}\n\nVálido por 10 minutos. Si no solicitaste este cambio, ignora este mensaje.`;
+  try {
+    await notificationsService.send({
+      to: newEmail,
+      subject: 'Confirmar nuevo correo - Integral Services',
+      body,
+      channel: 'email',
+    });
+    logger.info('Email change OTP sent', { to: newEmail });
+  } catch (err) {
+    logger.error('Failed to send email change OTP', { to: newEmail, err });
+    throw err;
+  }
+}
+
+/** OTP para cambio de teléfono: por ahora por correo (futura integración SMS). */
+export async function sendPhoneChangeOtp(toEmail: string, code: string): Promise<void> {
+  const body = `Tu código para confirmar el nuevo número de teléfono es: ${code}\n\nVálido por 10 minutos. En una próxima etapa se enviará por SMS.`;
+  try {
+    await notificationsService.send({
+      to: toEmail,
+      subject: 'Confirmar nuevo teléfono - Integral Services',
+      body,
+      channel: 'email',
+    });
+    logger.info('Phone change OTP sent', { to: toEmail });
+  } catch (err) {
+    logger.error('Failed to send phone change OTP', { to: toEmail, err });
+    throw err;
+  }
+}
