@@ -52,6 +52,18 @@ export class IdentityController {
     res.json(result);
   }
 
+  async logout(req: Request, res: Response): Promise<void> {
+    const { refreshToken } = req.body as { refreshToken?: string };
+    const result = await identityService.logout(refreshToken ?? '');
+    res.json(result);
+  }
+
+  async logoutAll(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const userId = req.user!.sub;
+    const result = await identityService.logoutAll(userId);
+    res.json(result);
+  }
+
   async forgotPassword(req: Request, res: Response): Promise<void> {
     const data = req.body as ForgotPasswordDto;
     const result = await identityService.forgotPassword(data);

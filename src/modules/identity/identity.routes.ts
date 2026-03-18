@@ -29,6 +29,7 @@ router.post('/send-otp', (req, res, next) => identityController.sendOtp(req, res
 router.post('/verify-otp', (req, res, next) => identityController.verifyOtp(req, res).catch(next));
 router.post('/login', (req, res, next) => identityController.login(req, res).catch(next));
 router.post('/refresh', (req, res, next) => identityController.refreshToken(req, res).catch(next));
+router.post('/logout', (req, res, next) => identityController.logout(req, res).catch(next));
 router.post('/forgot-password', (req, res, next) => identityController.forgotPassword(req, res).catch(next));
 router.post('/reset-password', (req, res, next) => identityController.resetPassword(req, res).catch(next));
 
@@ -43,6 +44,7 @@ router.get('/actividades-ofertadas', (_req, res) => {
 });
 
 // Protegidas con JWT
+router.post('/logout-all', authMiddleware, (req, res, next) => identityController.logoutAll(req as any, res).catch(next));
 router.get('/profile', authMiddleware, (req, res, next) => identityController.getProfile(req as any, res).catch(next));
 router.patch('/profile', authMiddleware, (req, res, next) => identityController.updateProfile(req as any, res).catch(next));
 router.get('/dashboard', authMiddleware, (req, res, next) => identityController.getDashboard(req as any, res).catch(next));

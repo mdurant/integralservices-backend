@@ -204,6 +204,21 @@ export class IdentityService {
     return { accessToken, expiresIn: `${ACCESS_TTL_MIN}m`, user: toUserInfo(user) };
   }
 
+  /** Revoca solo la sesión correspondiente al refreshToken enviado (cerrar sesión en este dispositivo). */
+  async logout(refreshToken: string): Promise<{ message: string }> {
+    if (!refreshToken?.trim()) return { message: 'Sesión cerrada.' };
+    const hash = hashToken(refreshToken);
+    const session = await UserSession.findOne({ where: { refresh_token_hash: hash } });
+    if (session) await session.update({ revoked_at: new Date() });
+    return { message: 'Sesión cerrada.' };
+  }
+
+  /** Revoca todas las sesiones del usuario (cerrar sesión en todos los dispositivos). */
+  async logoutAll(userId: string): Promise<{ message: string }> {
+    await UserSession.update({ revoked_at: new Date() }, { where: { user_id: userId } });
+    return { message: 'Sesiones cerradas en todos los dispositivos.' };
+  }
+
   async forgotPassword(data: ForgotPasswordDto): Promise<{ message: string }> {
     const user = await User.findOne({ where: { email: data.email.toLowerCase() } });
     if (!user) return { message: 'Si el correo existe, recibirás un enlace para restablecer la contraseña.' };

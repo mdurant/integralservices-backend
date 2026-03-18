@@ -240,6 +240,54 @@ Tras verificar, el usuario pasa a `active`, se activa 2FA y se crea el log `dash
 
 ---
 
+## 6.1. Logout (este dispositivo)
+
+**POST** `{{baseUrl}}/identity/logout`
+
+Revoca solo la sesión asociada al `refreshToken` enviado. El cliente debe enviar el refresh token que tiene guardado y después borrarlo en local.
+
+**Input (body):**
+
+```json
+{
+  "refreshToken": "valor_guardado_en_el_cliente"
+}
+```
+
+**Output (200):**
+
+```json
+{
+  "message": "Sesión cerrada."
+}
+```
+
+Siempre responde 200 con el mismo mensaje (incluso si el token era inválido o ya estaba revocado), para no revelar información.
+
+---
+
+## 6.2. Logout (todos los dispositivos)
+
+**POST** `{{baseUrl}}/identity/logout-all`
+
+**Headers:** `Authorization: Bearer {{accessToken}}`
+
+Revoca todas las sesiones del usuario autenticado. Útil para “Cerrar sesión en todos los dispositivos” desde configuración o seguridad.
+
+**Input:** Sin body.
+
+**Output (200):**
+
+```json
+{
+  "message": "Sesiones cerradas en todos los dispositivos."
+}
+```
+
+**Errores:** `401` sin token o token inválido.
+
+---
+
 ## 7. Recuperación de contraseña – Solicitar enlace
 
 **POST** `{{baseUrl}}/identity/forgot-password`
