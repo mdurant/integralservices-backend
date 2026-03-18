@@ -137,6 +137,31 @@
             "url": "{{baseUrl}}/identity/refresh",
             "description": "Obtener nuevo accessToken usando el refreshToken."
           }
+        },
+        {
+          "name": "Logout (este dispositivo)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/identity/logout",
+            "description": "Revoca solo la sesión del refreshToken enviado. Cerrar sesión en este dispositivo."
+          }
+        },
+        {
+          "name": "Logout (todos los dispositivos)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/identity/logout-all",
+            "description": "Revoca todas las sesiones del usuario. Requiere Bearer token. Cerrar sesión en todos los dispositivos."
+          }
         }
       ]
     },
