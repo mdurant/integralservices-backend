@@ -1,30 +1,33 @@
 export interface ServiceDto {
   id: string;
-  name: string;
-  description?: string;
-  code: string;
-  active?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  nombre: string;
+  descripcion: string | null;
+  categoria: string | null;
+  precioBaseReferencial: number | null;
+  activo: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateServiceDto {
-  name: string;
-  description?: string;
-  code: string;
-  active?: boolean;
+  nombre: string;
+  descripcion?: string;
+  categoria?: string;
+  precioBaseReferencial?: number;
+  activo?: boolean;
 }
 
 export interface UpdateServiceDto {
-  name?: string;
-  description?: string;
-  code?: string;
-  active?: boolean;
+  nombre?: string;
+  descripcion?: string;
+  categoria?: string;
+  precioBaseReferencial?: number;
+  activo?: boolean;
 }
 
 export interface ServiceListQueryDto {
   page?: number;
   limit?: number;
   search?: string;
-  active?: boolean;
+  activo?: boolean;
 }

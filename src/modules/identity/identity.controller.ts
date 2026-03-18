@@ -9,6 +9,7 @@ import {
   ActivateEmailDto,
   SendOtpDto,
   VerifyOtpDto,
+  TechnicianRegisterDto,
   UpdateProfileDto,
   DeactivateAccountDto,
   VerifyContactChangeDto,
@@ -18,6 +19,12 @@ export class IdentityController {
   async register(req: Request, res: Response): Promise<void> {
     const data = req.body as RegisterDto;
     const result = await identityService.register(data);
+    res.status(201).json(result);
+  }
+
+  async registerTechnician(req: Request, res: Response): Promise<void> {
+    const data = req.body as TechnicianRegisterDto;
+    const result = await identityService.registerTechnician(data);
     res.status(201).json(result);
   }
 

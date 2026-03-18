@@ -8,6 +8,16 @@ export interface RegisterDto {
   acceptTerms: boolean;
 }
 
+/** Pre-registro de técnico: solo nombres, apellidos, email, password. */
+export interface TechnicianRegisterDto {
+  nombres: string;
+  apellidos: string;
+  email: string;
+  password: string;
+  rePassword?: string;
+  acceptTerms?: boolean;
+}
+
 // ----- Login -----
 export interface LoginDto {
   email: string;

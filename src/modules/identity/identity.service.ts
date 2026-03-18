@@ -5,7 +5,7 @@ import { Op } from 'sequelize';
 import { env } from '../../config/env';
 import { HttpError } from '../../shared/errors/httpError';
 import { logger } from '../../config/logger';
-import { User, OtpCode, UserSession, RegistrationLog, ActivationToken, PendingContactChange } from '../../models';
+import { User, OtpCode, UserSession, RegistrationLog, ActivationToken, PendingContactChange, Technician } from '../../models';
 import {
   RegisterDto,
   LoginDto,
@@ -16,12 +16,13 @@ import {
   ActivateEmailDto,
   SendOtpDto,
   VerifyOtpDto,
+  TechnicianRegisterDto,
   UpdateProfileDto,
   DashboardResponseDto,
   DeactivateAccountDto,
   VerifyContactChangeDto,
 } from './dtos';
-import { sendActivationEmail, sendOtpEmail, sendPasswordResetEmail, sendEmailChangeOtp, sendPhoneChangeOtp } from './email.service';
+import { sendActivationEmail, sendOtpEmail, sendPasswordResetEmail, sendEmailChangeOtp, sendPhoneChangeOtp, sendTechnicianActivationEmail } from './email.service';
 
 const SALT_ROUNDS = 10;
 const OTP_LENGTH = 6;
@@ -95,6 +96,46 @@ export class IdentityService {
     return { message: 'Revisa tu correo para activar la cuenta.', email: user.email };
   }
 
+  /** Pre-registro de técnico: crea User (TECH, pending_activation), Technician (PRE_REGISTERED), token + OTP y envía un solo correo con ambos. */
+  async registerTechnician(data: TechnicianRegisterDto): Promise<{ message: string; email: string }> {
+    if (data.password !== (data.rePassword ?? data.password)) throw HttpError.badRequest('Las contraseñas no coinciden');
+    if (data.acceptTerms === false) throw HttpError.badRequest('Debes aceptar los términos y condiciones');
+    const email = data.email.trim().toLowerCase();
+    const existing = await User.findOne({ where: { email } });
+    if (existing) throw HttpError.conflict('El correo ya está registrado');
+
+    const password_hash = await hashPassword(data.password);
+    const user = await User.create({
+      email,
+      password_hash,
+      first_name: data.nombres.trim(),
+      last_name: data.apellidos.trim(),
+      role: 'TECH',
+      status: 'pending_activation',
+      terms_accepted_at: data.acceptTerms ? new Date() : null,
+    });
+
+    const tech = await Technician.create({
+      user_id: user.id,
+      email: user.email,
+      nombres: user.first_name,
+      apellidos: user.last_name,
+      estado: 'PRE_REGISTERED',
+    });
+
+    const token = randomBytes(32).toString('hex');
+    const expires_at = new Date(Date.now() + ACTIVATION_TTL_HOURS * 60 * 60 * 1000);
+    await ActivationToken.create({ user_id: user.id, token: hashToken(token), expires_at });
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const otpExpires = new Date(Date.now() + OTP_TTL_MIN * 60 * 1000);
+    await OtpCode.create({ user_id: user.id, code, type: 'activation', expires_at: otpExpires });
+
+    await sendTechnicianActivationEmail(user.email, token, code);
+    logger.info('Technician pre-registered', { userId: user.id, technicianId: tech.id, email: user.email });
+    return { message: 'Revisa tu correo para activar tu cuenta de técnico. Tienes 24 horas para completar tu perfil.', email: user.email };
+  }
+
   async activateEmail(data: ActivateEmailDto): Promise<{ message: string }> {
     const hashed = hashToken(data.token);
     const row = await ActivationToken.findOne({
@@ -107,6 +148,15 @@ export class IdentityService {
 
     await user.update({ status: 'pending_otp', email_verified_at: new Date() });
     await row.update({ used_at: new Date() });
+
+    const isTechnician = (user as User & { role?: string }).role === 'TECH';
+    const technicianPending = isTechnician
+      ? await Technician.findOne({ where: { user_id: user.id, estado: 'PRE_REGISTERED' } })
+      : null;
+
+    if (technicianPending) {
+      return { message: 'Cuenta activada. Ingresa el código OTP que recibiste en el mismo correo.' };
+    }
 
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const expires_at = new Date(Date.now() + OTP_TTL_MIN * 60 * 1000);
@@ -137,11 +187,29 @@ export class IdentityService {
     });
     if (!otp) throw HttpError.badRequest('Código OTP inválido o expirado');
 
-    await otp.update({ used_at: new Date() });
-    await user.update({ status: 'active', two_fa_enabled: true });
-    await RegistrationLog.create({ user_id: user.id, event: 'dashboard_first_access', ip, user_agent: userAgent ?? undefined, created_at: new Date() });
+    const now = new Date();
+    await otp.update({ used_at: now });
+    await user.update({ status: 'active', two_fa_enabled: true, email_verified_at: now });
 
-    const accessToken = generateAccessToken(user.id, user.email);
+    const role = (user as User & { role?: string }).role ?? 'CLIENT';
+    if (role === 'TECH' && otp.get('type') === 'activation') {
+      const technician = await Technician.findOne({ where: { user_id: user.id } });
+      if (technician && technician.estado === 'PRE_REGISTERED') {
+        const deadline = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        await technician.update({
+          estado: 'VERIFIED_PENDING_PROFILE',
+          fecha_registro: now,
+          profile_completion_deadline: deadline,
+        });
+        const tokenRow = await ActivationToken.findOne({ where: { user_id: user.id }, order: [['created_at', 'DESC']] });
+        if (tokenRow && !tokenRow.used_at) await tokenRow.update({ used_at: now });
+      }
+    }
+
+    await RegistrationLog.create({ user_id: user.id, event: 'dashboard_first_access', ip, user_agent: userAgent ?? undefined, created_at: now });
+
+    const roles = [(user as User & { role?: string }).role ?? 'CLIENT'];
+    const accessToken = generateAccessToken(user.id, user.email, roles);
     const refreshToken = generateRefreshToken();
     const expiresAt = new Date(Date.now() + REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000);
     await UserSession.create({
@@ -173,7 +241,8 @@ export class IdentityService {
 
     await user.update({ last_login_at: new Date() });
 
-    const accessToken = generateAccessToken(user.id, user.email);
+    const roles = [(user as User & { role?: string }).role ?? 'CLIENT'];
+    const accessToken = generateAccessToken(user.id, user.email, roles);
     const refreshToken = generateRefreshToken();
     const expiresAt = new Date(Date.now() + (data.rememberMe ? REFRESH_TTL_DAYS : 1) * 24 * 60 * 60 * 1000);
     await UserSession.create({
@@ -201,7 +270,8 @@ export class IdentityService {
     const user = await User.findByPk(session.user_id);
     if (!user || user.status !== 'active') throw HttpError.unauthorized('Usuario no disponible');
 
-    const accessToken = generateAccessToken(user.id, user.email);
+    const roles = [(user as User & { role?: string }).role ?? 'CLIENT'];
+    const accessToken = generateAccessToken(user.id, user.email, roles);
     return { accessToken, expiresIn: `${ACCESS_TTL_MIN}m`, user: toUserInfo(user) };
   }
 
@@ -328,9 +398,10 @@ export class IdentityService {
     });
 
     if (channels.length > 0) {
-      return {
-        requiresVerification: true,
-        ...(channels.length === 1 ? { channel: channels[0] } : { channel: channels[0], channels }),
+      const payload = {
+        requiresVerification: true as const,
+        channel: channels[0] as 'email' | 'phone',
+        ...(channels.length === 2 ? { channels: channels as ['email', 'phone'] } : {}),
         message:
           channels.length === 2
             ? 'Se han enviado códigos a tu nuevo correo y a tu correo actual para el teléfono. Verifica ambos e inicia sesión de nuevo.'
@@ -339,6 +410,7 @@ export class IdentityService {
               : 'Se ha enviado un código a tu correo para confirmar el nuevo teléfono. Verifícalo e inicia sesión de nuevo.',
         logoutInSeconds: 5,
       };
+      return payload;
     }
 
     return toUserInfo(user);

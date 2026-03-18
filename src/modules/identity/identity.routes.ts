@@ -25,6 +25,7 @@ const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } }); // 5M
 
 // Públicas
 router.post('/register', (req, res, next) => identityController.register(req, res).catch(next));
+router.post('/technicians/register', (req, res, next) => identityController.registerTechnician(req, res).catch(next));
 router.post('/activate', (req, res, next) => identityController.activateEmail(req, res).catch(next));
 router.post('/send-otp', (req, res, next) => identityController.sendOtp(req, res).catch(next));
 router.post('/verify-otp', (req, res, next) => identityController.verifyOtp(req, res).catch(next));

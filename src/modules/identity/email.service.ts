@@ -21,6 +21,33 @@ export async function sendActivationEmail(email: string, token: string): Promise
   }
 }
 
+/** Email para pre-registro de técnico: incluye link de activación y código OTP en un solo correo. */
+export async function sendTechnicianActivationEmail(
+  email: string,
+  token: string,
+  otpCode: string
+): Promise<void> {
+  const link = `${FRONTEND_URL}/auth/activate?token=${encodeURIComponent(token)}`;
+  const body =
+    `Hola,\n\nHas solicitado registrarte como técnico en Integral Services.\n\n` +
+    `Para activar tu cuenta puedes:\n` +
+    `1) Hacer clic en el siguiente enlace (válido 24h):\n${link}\n\n` +
+    `2) O ingresar este código OTP en la aplicación (válido 10 minutos):\n${otpCode}\n\n` +
+    `Una vez activado tendrás 24 horas para completar tu perfil técnico.\n\nSaludos.`;
+  try {
+    await notificationsService.send({
+      to: email,
+      subject: 'Activa tu cuenta de técnico - Integral Services',
+      body,
+      channel: 'email',
+    });
+    logger.info('Technician activation email sent', { email });
+  } catch (err) {
+    logger.error('Failed to send technician activation email', { email, err });
+    throw err;
+  }
+}
+
 export async function sendOtpEmail(email: string, code: string): Promise<void> {
   const body = `Tu código de verificación es: ${code}\n\nVálido por 10 minutos. No lo compartas.`;
   try {

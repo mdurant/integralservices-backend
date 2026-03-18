@@ -2,6 +2,7 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../config/db';
 
 export type UserStatus = 'pending_activation' | 'pending_otp' | 'active' | 'deactivated';
+export type UserRole = 'ADMIN' | 'TECH' | 'CLIENT';
 export type Sex = 'M' | 'F' | 'X' | 'other';
 
 export interface UserAttributes {
@@ -10,6 +11,7 @@ export interface UserAttributes {
   password_hash: string;
   first_name: string | null;
   last_name: string | null;
+  role: UserRole;
   nationality: string | null;
   phone: string | null;
   sex: Sex | null;
@@ -27,7 +29,7 @@ export interface UserAttributes {
   updatedAt: Date;
 }
 
-export type UserCreationAttributes = Optional<UserAttributes, 'id' | 'first_name' | 'last_name' | 'nationality' | 'phone' | 'sex' | 'region_code' | 'comuna_code' | 'actividad_ofertada_id' | 'profile_image_url' | 'email_verified_at' | 'two_fa_enabled' | 'two_fa_secret' | 'terms_accepted_at' | 'last_login_at' | 'createdAt' | 'updatedAt'>;
+export type UserCreationAttributes = Optional<UserAttributes, 'id' | 'first_name' | 'last_name' | 'role' | 'nationality' | 'phone' | 'sex' | 'region_code' | 'comuna_code' | 'actividad_ofertada_id' | 'profile_image_url' | 'email_verified_at' | 'two_fa_enabled' | 'two_fa_secret' | 'terms_accepted_at' | 'last_login_at' | 'createdAt' | 'updatedAt'>;
 
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   declare id: string;
@@ -35,6 +37,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   declare password_hash: string;
   declare first_name: string | null;
   declare last_name: string | null;
+  declare role: UserRole;
   declare nationality: string | null;
   declare phone: string | null;
   declare sex: Sex | null;
@@ -59,6 +62,7 @@ User.init(
     password_hash: { type: DataTypes.STRING(255), allowNull: false },
     first_name: { type: DataTypes.STRING(120), allowNull: true },
     last_name: { type: DataTypes.STRING(120), allowNull: true },
+    role: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'CLIENT' },
     nationality: { type: DataTypes.STRING(80), allowNull: true },
     phone: { type: DataTypes.STRING(20), allowNull: true },
     sex: { type: DataTypes.ENUM('M', 'F', 'X', 'other'), allowNull: true },
